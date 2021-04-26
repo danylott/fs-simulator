@@ -5,10 +5,10 @@ import java.io.RandomAccessFile;
 
 public class LDisc implements Disc {
 
-    private int blockNumber;
+    private final int blockNumber;
 
     //block size in bytes
-    private int blockSize;
+    private final int blockSize;
 
     private RandomAccessFile file;
 

@@ -6,13 +6,19 @@ public class DiscFactory {
 
         LDisc disc = new LDisc(blockNumber, blockSize, filePath);
 
+        //TODO Create and initialize bitmap
+
+        //TODO Create descriptors after bitmap
+
         //Fill file with empty blocks
         byte[] zeros = new byte[blockSize];
         for(int i = 0; i < blockNumber; ++i) {
             disc.writeBlock(i, zeros);
         }
 
-        //TODO Create and initialize bitmap
+        /*
+         * BITMAP[BlockNumber] | FileDescriptor[k] | BLOCKS [BlockSize][BlockNumber]
+         */
 
         return disc;
     }
