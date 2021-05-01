@@ -3,7 +3,7 @@ package utils;
 import io_system.IOSystemInterface;
 
 public class DiskStream {
-    protected char[] blockBuffer;
+    protected byte[] blockBuffer;
     protected IOSystemInterface ios;
     protected int blockIndex;
     protected int shift;
