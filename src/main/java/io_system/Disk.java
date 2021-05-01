@@ -22,7 +22,7 @@ public class Disk extends IOSystemInterface {
                 && blocksNum > 0 && blocksNum <= 128;
     }
 
-    public void init(int blocksLength, int blocksNumber, String systemStatePath) {
+    public void init(int blocksLength, int blocksNumber, String systemStatePath) throws IOException {
         this.blocksNum = blocksNumber;
         this.blockLen = blocksLength;
 
