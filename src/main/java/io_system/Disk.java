@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class Disk extends IOSystemInterface {
+    private static final int MAXBLOCKSIZE = 0; //128
+    private static final int MAXBLOCKNUM = 0; //128
     protected int blocksNum;
     protected int blockLen;
     protected byte[][] lDisk;
@@ -18,8 +20,8 @@ public class Disk extends IOSystemInterface {
     }
 
     protected boolean checkConfig() {
-        return blockLen > 0 && blockLen <= 128
-                && blocksNum > 0 && blocksNum <= 128;
+        return blockLen > 0 && blockLen <= MAXBLOCKSIZE
+                && blocksNum > 0 && blocksNum <= MAXBLOCKNUM;
     }
 
     public void init(int blocksLength, int blocksNumber, String systemStatePath) throws IOException {
@@ -35,11 +37,11 @@ public class Disk extends IOSystemInterface {
     // N:::CleanUp when end
 
     @Override
-    public void read_block(int i, byte[] data) {
+    public byte[] read_block(int i, byte[] data) {
         assert i > 0 && i < this.blocksNum && data != null;
 
         data = Arrays.copyOf(lDisk[i], lDisk.length);
-        // Q:::Return data?
+        return data;
     }
 
     @Override

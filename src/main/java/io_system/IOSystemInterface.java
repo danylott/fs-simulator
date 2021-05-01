@@ -1,7 +1,6 @@
 package io_system;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public abstract class IOSystemInterface {
@@ -33,7 +32,7 @@ public abstract class IOSystemInterface {
     /*
      * Copies block number i from disk into a given byte array.
      */
-    public abstract void read_block(int i, byte[] data);
+    public abstract byte[] read_block(int i, byte[] data);
 
     /*
      * Writes given data into block number i on the disk.
