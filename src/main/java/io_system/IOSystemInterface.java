@@ -1,17 +1,19 @@
 package io_system;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 public abstract class IOSystemInterface {
     protected String systemStatePath;
 
-    protected abstract void saveSystemState();
+    protected abstract void saveSystemState() throws IOException;
 
-    protected abstract void restoreSystemState();
+    protected abstract void restoreSystemState() throws FileNotFoundException, IOException;
 
     protected boolean fileExists(String filePath) {
-
-        //TODO check if file exists
         //Move to util?
-        return false;
+        return new File(filePath).exists();
     }
 
     protected void init(String systemStatePath) {
@@ -23,7 +25,6 @@ public abstract class IOSystemInterface {
     }
 
     protected void cleanup() {
-
         if(fileExists(systemStatePath)) {
             saveSystemState();
         }
