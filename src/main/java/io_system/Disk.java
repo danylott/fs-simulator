@@ -1,15 +1,10 @@
 package io_system;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
-import java.util.Objects;
 
 public class Disk extends IOSystemInterface {
-    private static final int MAXBLOCKSIZE = 0; //128
-    private static final int MAXBLOCKNUM = 0; //128
     protected int blocksNum;
     protected int blockLen;
     protected byte[][] lDisk;
@@ -19,29 +14,19 @@ public class Disk extends IOSystemInterface {
         blockLen = 0;
     }
 
-    protected boolean checkConfig() {
-        return blockLen > 0 && blockLen <= MAXBLOCKSIZE
-                && blocksNum > 0 && blocksNum <= MAXBLOCKNUM;
-    }
-
     public void init(int blocksLength, int blocksNumber, String systemStatePath) throws IOException {
         this.blocksNum = blocksNumber;
         this.blockLen = blocksLength;
-
-        if(!checkConfig())
-            System.out.println("ERROR in checkConfig(Disk)!!!");
-
         init(systemStatePath);
     }
 
     // N:::CleanUp when end
 
     @Override
-    public byte[] read_block(int i, byte[] data) {
-        assert i > 0 && i < this.blocksNum && data != null;
+    public byte[] read_block(int i) {
+        assert i > 0 && i < this.blocksNum;
 
-        data = Arrays.copyOf(lDisk[i], lDisk.length);
-        return data;
+        return Arrays.copyOf(lDisk[i], lDisk[i].length);
     }
 
     @Override

@@ -1,12 +1,12 @@
 package components;
 
+import file_system.FSConfig;
+
 public class FileDescriptor {
     public int fileLength = -1;
     public int[] blockArray;
 
-    public FileDescriptor() {}
-    public FileDescriptor(int fileLength, int[] blockArray) {
-        this.fileLength = fileLength;
-        this.blockArray = blockArray;
+    public FileDescriptor() {
+        blockArray = new int[FSConfig.BLOCKS_PER_FILE];
     }
 }
