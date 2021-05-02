@@ -19,7 +19,7 @@ public class DirectoryEntry {
     }
 
     public static DirectoryEntry formByteArray(byte[] data) {
-        assert data.length == FSConfig.MAX_FILENAME_LEN + Integer.BYTES;
+        assert data.length == FSConfig.DIRECTORY_ENTRY_SIZE;
 
         DirectoryEntry res = new DirectoryEntry();
         res.fdIndex = ByteBuffer.wrap(Arrays.copyOf(data, Integer.BYTES)).getInt();

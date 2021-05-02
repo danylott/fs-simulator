@@ -22,7 +22,7 @@ public class FileDescriptor {
     }
 
     public static FileDescriptor formByteArray(byte[] data) {
-        assert data.length == Integer.BYTES * (FSConfig.BLOCKS_PER_FILE + 1);
+        assert data.length == FSConfig.FILE_DESCRIPTOR_SIZE;
 
         FileDescriptor res = new FileDescriptor();
         res.fileLength = ByteBuffer.wrap(Arrays.copyOf(data, Integer.BYTES)).getInt();
@@ -31,7 +31,7 @@ public class FileDescriptor {
     }
 
     public static byte[] asByteArray(FileDescriptor fd) {
-        ByteBuffer bb = ByteBuffer.allocate(Integer.BYTES * (FSConfig.BLOCKS_PER_FILE + 1));
+        ByteBuffer bb = ByteBuffer.allocate(FSConfig.FILE_DESCRIPTOR_SIZE);
         bb.asIntBuffer().put(fd.fileLength).put(fd.blockArray);
         return bb.array();
     }
