@@ -30,9 +30,9 @@ public abstract class IOSystemInterface {
     }
 
     /*
-     * Copies block number i from disk into a given byte array.
+     * Copies block number i from disk.
      */
-    public abstract byte[] read_block(int i, byte[] data);
+    public abstract byte[] read_block(int i);
 
     /*
      * Writes given data into block number i on the disk.

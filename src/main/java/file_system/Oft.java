@@ -1,7 +1,9 @@
-public class Oft extends OftInterface{
+package file_system;
+
+public class Oft extends OftInterface {
     @Override
     public int getOftIndex(int _fdIndex) {
-        if (_fdIndex < 0 || _fdIndex > FDOPENEDLIMIT)
+        if (_fdIndex < 0 || _fdIndex > OftInterface.FDOPENEDLIMIT)
             return -1;
 
         for (int i = 0; i < entriesBuffer.size(); i++) {
@@ -14,13 +16,13 @@ public class Oft extends OftInterface{
     @Override
     public int addFile(int _fdIndex) {
         // if file exists or no free space in oft
-        if (_fdIndex == FDOPENEDLIMIT || getOftIndex(_fdIndex) >= 0)
+        if (_fdIndex == OftInterface.FDOPENEDLIMIT || getOftIndex(_fdIndex) >= 0)
             return -1;
 
         OftEntry newOftEntry = new OftEntry();
         newOftEntry.fDescIndex = _fdIndex;
 
-        for (int i = 0; i < FDOPENEDLIMIT; i++) {
+        for (int i = 0; i < OftInterface.FDOPENEDLIMIT; i++) {
             if (entriesBuffer.get(i).fDescIndex == -1) {
                 entriesBuffer.set(i, newOftEntry);
                 oftSize++;
@@ -52,7 +54,7 @@ public class Oft extends OftInterface{
 
     @Override
     public int getFDIndexByOftIndex(int _oftIndex) {
-        if (_oftIndex < 0 || _oftIndex >= FDOPENEDLIMIT) {
+        if (_oftIndex < 0 || _oftIndex >= OftInterface.FDOPENEDLIMIT) {
             return -1;
         }
         return entriesBuffer.get(_oftIndex).fDescIndex;
