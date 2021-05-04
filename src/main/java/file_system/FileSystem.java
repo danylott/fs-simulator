@@ -1,11 +1,13 @@
 package file_system;
 
+import auxiliary.Pair;
 import components.DirectoryEntry;
 import components.FileDescriptor;
 import io_system.IOSystemInterface;
 import exceptions.*;
 import utils.*;
 
+import java.security.KeyPair;
 import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -140,5 +142,66 @@ public class FileSystem {
 
     public void destroy(String fileName) {
 
+    }
+
+    public int _lSeek(OftEntry fileEntry, FileDescriptor fDesc, int pos) {
+        if (fileEntry != null){
+            if (pos < 0 || pos > fDesc.fileLength) {
+                return -1;
+            }
+            return 1;
+        }
+        else {
+            return -1;
+        }
+    }
+
+    public Pair findFileInDirectory(String fileName) {
+        // function return file directory with idx or
+        // file directory with idx = -1 if not found
+        OftEntry dirOftEntry = oft.getFile(0);
+        FileDescriptor dirFd = getDescriptor(0);
+        if(_lSeek(dirOftEntry, dirFd, 0) == 1)
+            dirOftEntry.fPos = 0;
+        int numOFFilesInDir = dirFd.fileLength / FSConfig.FILE_DESCRIPTOR_SIZE;
+        int dirEntryIdx = 0;
+        for (int i = 0; i < numOFFilesInDir; i++) {
+            DirectoryEntry curDirEntry = null;
+            // must rerutn curDirEntry
+            // readFromFile(dirOftEntry, dirFd, curDirEntry, FSConfig.FILE_DESCRIPTOR_SIZE);
+            if (curDirEntry.filename.equals(fileName)){
+                dirEntryIdx = i;
+                Pair<DirectoryEntry, Integer> file = new Pair<>(curDirEntry, dirEntryIdx);
+                return file;
+            }
+        }
+        Pair<DirectoryEntry, Integer> file = new Pair<>(new DirectoryEntry(), -1);
+        return file;
+    }
+
+    public int open(String fileName) {
+        // returns -1 if file with such fileName not found
+        // or oftIndex if file found
+        Pair<DirectoryEntry, Integer> file = findFileInDirectory(fileName);
+        if (file.second == -1) {
+            return -1;
+        }
+        int fdIndex = file.first.fdIndex;
+        int oftIndex = oft.addFile(fdIndex);
+        return oftIndex;
+    }
+
+    public int close(int oftIndex) throws FileNotFoundException {
+        int fdIndex = oft.getFDIndexByOftIndex(oftIndex);
+        if (fdIndex == -1) {
+            return -1;
+        }
+        FileDescriptor fd = getDescriptor(fdIndex);
+        OftEntry oftEntry = oft.getFile(oftIndex);
+        if (oftEntry.blockModified) {
+            ios.write_block(fd.blockArray[oftEntry.fPos/FSConfig.BLOCK_SIZE], oftEntry.readWriteBuffer);
+        }
+        oft.removeOftEntry(oftIndex);
+        return 1;
     }
 }

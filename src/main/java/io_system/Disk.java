@@ -40,8 +40,6 @@ public class Disk extends IOSystemInterface {
     protected void saveSystemState() throws IOException {
         RandomAccessFile file = new RandomAccessFile(this.systemStatePath, "rw");
 
-        // Q:::Check Opened?
-
         int offset = 0;
         for (int i = 0; i < this.blocksNum; i++){
             file.write(lDisk[i], offset, this.blockLen);
@@ -54,8 +52,6 @@ public class Disk extends IOSystemInterface {
     @Override
     protected void restoreSystemState() throws IOException {
         RandomAccessFile file = new RandomAccessFile(this.systemStatePath, "rw");
-
-        // Q:::Check Opened?
 
         int offset = 0;
         for (int i = 0; i < this.blocksNum; i++){
