@@ -113,6 +113,77 @@ public class FileSystem {
         return false;
     }
 
+    private byte[] readFromFile(OftEntry entry, FileDescriptor fd, int bytes) {
+        // Check if file has enough bytes to read
+        if (fd.fileLength - entry.fPos < bytes) {
+            bytes = fd.fileLength - entry.fPos;
+        }
+        byte[] res = new byte[bytes];
+        int bytesRead = 0;
+
+        int blockIndex = entry.fPos / FSConfig.BLOCK_SIZE;
+        int shift = entry.fPos % FSConfig.BLOCK_SIZE;
+
+        if (entry.readBlockIndex != blockIndex) {
+            if (entry.blockModified) {
+                ios.write_block(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
+                entry.blockModified = false;
+            }
+            entry.blockRead = false;
+            entry.readBlockIndex = -1;
+        }
+
+        if (shift != 0 || entry.blockModified) {
+            if (!entry.blockRead) {
+                // if block isn't read yet, read the respective block
+                entry.readWriteBuffer = ios.read_block(fd.blockArray[blockIndex]);
+                entry.blockRead = true;
+                entry.readBlockIndex = blockIndex;
+            }
+            int prefixSize = Integer.min(FSConfig.BLOCK_SIZE - shift, bytes);
+            System.arraycopy(entry.readWriteBuffer, shift, res, bytesRead, prefixSize);
+            bytesRead += prefixSize;
+            bytes -= prefixSize;
+            entry.fPos += prefixSize;
+            shift = (shift + prefixSize) % FSConfig.BLOCK_SIZE;
+            if (shift != 0) {
+                // bytes < BLOCK_SIZE - shift
+                return res;
+            }
+
+            if (entry.blockModified) {
+                ios.write_block(fd.blockArray[blockIndex], entry.readWriteBuffer);
+                entry.blockModified = false;
+            }
+            blockIndex += 1;
+            entry.blockRead = false;
+            entry.readBlockIndex = -1;
+        }
+
+        // Read all other bytes
+        while (bytes >= FSConfig.BLOCK_SIZE) {
+            entry.readWriteBuffer = ios.read_block(fd.blockArray[blockIndex]);
+            entry.fPos += FSConfig.BLOCK_SIZE;
+            entry.readBlockIndex = blockIndex;
+            entry.blockRead = true;
+            blockIndex += 1;
+
+            System.arraycopy(entry.readWriteBuffer, 0, res, bytesRead, FSConfig.BLOCK_SIZE);
+            bytesRead += FSConfig.BLOCK_SIZE;
+            bytes -= FSConfig.BLOCK_SIZE;
+        }
+
+        if (bytes > 0) {
+            // read remaining bytes
+            entry.readWriteBuffer = ios.read_block(fd.blockArray[blockIndex]);
+            System.arraycopy(entry.readWriteBuffer, 0, res, bytesRead, bytes);
+            entry.fPos += bytes;
+            entry.blockRead = true;
+            entry.readBlockIndex = blockIndex;
+        }
+        return res;
+    }
+
     private void writeToFile(OftEntry entry, FileDescriptor fd, byte[] data) throws FileSizeExceededException {
         if (data.length + entry.fPos > FSConfig.BLOCK_SIZE * FSConfig.BLOCKS_PER_FILE) {
             throw new FileSizeExceededException();
@@ -121,13 +192,79 @@ public class FileSystem {
         int bytesWritten = 0;
         int blockIndex = entry.fPos / FSConfig.BLOCK_SIZE;
         int blockOffset = entry.fPos % FSConfig.BLOCK_SIZE;
+        int tempFileLength = fd.fileLength;
 
-        //TODO finish
-    }
+        while (data.length + blockOffset > FSConfig.BLOCK_SIZE) {
+            int bytesToAlloc = Integer.max(0, FSConfig.BLOCK_SIZE - blockOffset - fd.fileLength + entry.fPos);
+            reserveBytesForFile(fd, bytesToAlloc);
+            if (entry.readBlockIndex != blockIndex) {
+                if (entry.blockModified) {
+                    ios.write_block(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
+                    entry.blockModified = false;
+                }
+                entry.blockRead = false;
+                entry.readBlockIndex = -1;
+            }
+            if (!entry.blockRead) {
+                entry.readWriteBuffer = ios.read_block(fd.blockArray[blockIndex]);
+                entry.blockRead = true;
+                entry.readBlockIndex = blockIndex;
+            }
+            System.arraycopy(data, bytesWritten, entry.readWriteBuffer, blockOffset, FSConfig.BLOCK_SIZE - blockOffset);
+            bytesWritten += FSConfig.BLOCK_SIZE - blockOffset;
+            entry.fPos += FSConfig.BLOCK_SIZE - blockOffset;
+            blockOffset = 0;
 
-    private byte[] readFromFile(OftEntry entry, FileDescriptor fd, int bytes) {
-        //TODO: finish.
-        return new byte[bytes];
+            ios.write_block(fd.blockArray[blockIndex], entry.readWriteBuffer);
+            blockIndex++;
+            entry.blockModified = false;
+            entry.blockRead = false;
+            if (entry.fPos > fd.fileLength) {
+                fd.fileLength = entry.fPos;
+            }
+        }
+
+        int bytes = data.length - bytesWritten;
+        int bytesToAlloc = Integer.max(0, bytes - fd.fileLength + entry.fPos);
+
+        try {
+            reserveBytesForFile(fd, bytesToAlloc);
+            if (entry.readBlockIndex != blockIndex) {
+                if (entry.blockModified) {
+                    ios.write_block(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
+                    entry.blockModified = false;
+                }
+                entry.blockRead = false;
+                entry.readBlockIndex = -1;
+            }
+            if (!entry.blockRead) {
+                entry.readWriteBuffer = ios.read_block(fd.blockArray[blockIndex]);
+                entry.blockRead = true;
+                entry.readBlockIndex = blockIndex;
+            }
+            System.arraycopy(data, bytesWritten, entry.readWriteBuffer, blockOffset, bytes);
+            bytesWritten += bytes;
+            if (bytes == FSConfig.BLOCK_SIZE) {
+                ios.write_block(fd.blockArray[blockIndex], entry.readWriteBuffer);
+                entry.blockModified = false;
+                entry.blockRead = true;
+            } else {
+                entry.blockRead = true;
+                entry.blockModified = true;
+            }
+            entry.fPos += bytes;
+        } catch (Exception ignored) {}
+
+        if (entry.fPos > tempFileLength) {
+            fd.fileLength = entry.fPos;
+            int fdShift = FSConfig.BLOCKS_NUM + FSConfig.FILE_DESCRIPTOR_SIZE * entry.fDescIndex;
+            int fdBlockIndex = fdShift / FSConfig.BLOCK_SIZE;
+            int fdOffset = fdShift % FSConfig.BLOCK_SIZE;
+            DiskWriter fOut = new DiskWriter(ios, fdBlockIndex, fdOffset);
+            fOut.write(FileDescriptor.asByteArray(fd));
+        }
+
+//        return bytesWritten;
     }
 
     public void create(String fileName) throws TooManyFilesException, TooLongFileNameException, FileAlreadyExistsException, NoFreeDescriptorException {
@@ -166,7 +303,7 @@ public class FileSystem {
         OftEntry dir = oft.getFile(0);
         try {
             writeToFile(dir, dirDescriptor, DirectoryEntry.asByteArray(de));
-        } catch (FileSizeExceededException e) {
+        } catch (FileSizeExceededException | NotEnoughFreeBlocksException e) {
             throw new TooManyFilesException();
         }
 
@@ -206,10 +343,10 @@ public class FileSystem {
         OftEntry dir = oft.getFile(0);
         FileDescriptor dirDescriptor = getDescriptor(0);
         //Find last directory entry
-        _lSeek(dir, dirDescriptor, dirDescriptor.fileLength - FSConfig.DIRECTORY_ENTRY_SIZE);
+        lSeek(dir, dirDescriptor, dirDescriptor.fileLength - FSConfig.DIRECTORY_ENTRY_SIZE);
         de = DirectoryEntry.formByteArray(readFromFile(dir, dirDescriptor, FSConfig.DIRECTORY_ENTRY_SIZE));
         //Replace removed DE with last DE
-        _lSeek(dir, dirDescriptor, FSConfig.DIRECTORY_ENTRY_SIZE * deIndex);
+        lSeek(dir, dirDescriptor, FSConfig.DIRECTORY_ENTRY_SIZE * deIndex);
         try {
             writeToFile(dir, dirDescriptor, DirectoryEntry.asByteArray(de));
         } catch (FileSizeExceededException e) {
@@ -222,13 +359,17 @@ public class FileSystem {
         writer.write(FileDescriptor.asByteArray(dirDescriptor));
     }
 
-    //FIXME: Java Code Convention
-    private int _lSeek(OftEntry fileEntry, FileDescriptor fDesc, int pos) {
-        if (pos < 0 || pos > fDesc.fileLength) {
+    private int lSeek(OftEntry fileEntry, FileDescriptor fDesc, int pos) {
+        if (fileEntry != null){
+            if (pos < 0 || pos > fDesc.fileLength) {
+                return -1;
+            }
+            fileEntry.fPos = pos;
+            return 1;
+        }
+        else {
             return -1;
         }
-        fileEntry.fPos = pos;
-        return 1;
     }
 
     public Pair<DirectoryEntry, Integer> findFileInDirectory(String fileName) {
@@ -236,7 +377,7 @@ public class FileSystem {
         // file directory with idx = -1 if not found
         OftEntry dirOftEntry = oft.getFile(0);
         FileDescriptor dirFd = getDescriptor(0);
-        if(_lSeek(dirOftEntry, dirFd, 0) == 1)
+        if(lSeek(dirOftEntry, dirFd, 0) == 1)
             dirOftEntry.fPos = 0;
         int numOFFilesInDir = dirFd.fileLength / FSConfig.FILE_DESCRIPTOR_SIZE;
         int dirEntryIdx = 0;
@@ -285,7 +426,7 @@ public class FileSystem {
     public List<Pair<String, Integer>> getAllFiles() {
         OftEntry dir = oft.getFile(0);
         FileDescriptor dirDescriptor = getDescriptor(0);
-        _lSeek(dir, dirDescriptor, 0);
+        lSeek(dir, dirDescriptor, 0);
 
         int filesNum = dirDescriptor.fileLength / FSConfig.DIRECTORY_ENTRY_SIZE;
         List<Pair<String, Integer>> res = new ArrayList<>(filesNum);
