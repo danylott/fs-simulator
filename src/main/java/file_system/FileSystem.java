@@ -289,11 +289,12 @@ public class FileSystem {
 
     }
 
-    public int _lSeek(OftEntry fileEntry, FileDescriptor fDesc, int pos) {
+    private int lSeek(OftEntry fileEntry, FileDescriptor fDesc, int pos) {
         if (fileEntry != null){
             if (pos < 0 || pos > fDesc.fileLength) {
                 return -1;
             }
+            fileEntry.fPos = pos;
             return 1;
         }
         else {
@@ -306,7 +307,7 @@ public class FileSystem {
         // file directory with idx = -1 if not found
         OftEntry dirOftEntry = oft.getFile(0);
         FileDescriptor dirFd = getDescriptor(0);
-        if(_lSeek(dirOftEntry, dirFd, 0) == 1)
+        if(lSeek(dirOftEntry, dirFd, 0) == 1)
             dirOftEntry.fPos = 0;
         int numOFFilesInDir = dirFd.fileLength / FSConfig.FILE_DESCRIPTOR_SIZE;
         int dirEntryIdx = 0;
