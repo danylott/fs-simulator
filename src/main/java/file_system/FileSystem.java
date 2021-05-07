@@ -184,7 +184,10 @@ public class FileSystem {
         return res;
     }
 
-    private void writeToFile(OftEntry entry, FileDescriptor fd, byte[] data) throws FileSizeExceededException {
+    private void writeToFile(OftEntry entry, FileDescriptor fd, byte[] data) throws FileSizeExceededException, NotEnoughFreeBlocksException {
+        // before reading/writing blocks, we must ensure
+        // the file can store requested bytes
+        // and allocate the necessary bytes
         if (data.length + entry.fPos > FSConfig.BLOCK_SIZE * FSConfig.BLOCKS_PER_FILE) {
             throw new FileSizeExceededException();
         }
@@ -349,7 +352,7 @@ public class FileSystem {
         lSeek(dir, dirDescriptor, FSConfig.DIRECTORY_ENTRY_SIZE * deIndex);
         try {
             writeToFile(dir, dirDescriptor, DirectoryEntry.asByteArray(de));
-        } catch (FileSizeExceededException e) {
+        } catch (FileSizeExceededException | NotEnoughFreeBlocksException e) {
             throw new IllegalStateException("Looks like DirectoryEntry is outside directory file...");
         }
         shrinkFile(dirDescriptor, dirDescriptor.fileLength - FSConfig.DIRECTORY_ENTRY_SIZE);
