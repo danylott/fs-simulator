@@ -380,8 +380,7 @@ public class FileSystem {
         // file directory with idx = -1 if not found
         OftEntry dirOftEntry = oft.getFile(0);
         FileDescriptor dirFd = getDescriptor(0);
-        if(lSeek(dirOftEntry, dirFd, 0) == 1)
-            dirOftEntry.fPos = 0;
+        lSeek(dirOftEntry, dirFd, 0);
         int numOFFilesInDir = dirFd.fileLength / FSConfig.FILE_DESCRIPTOR_SIZE;
         int dirEntryIdx = 0;
         for (int i = 0; i < numOFFilesInDir; i++) {
