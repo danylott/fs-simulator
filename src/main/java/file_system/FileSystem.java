@@ -7,7 +7,7 @@ import io_system.IOSystemInterface;
 import exceptions.*;
 import utils.*;
 
-import java.security.KeyPair;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,8 +55,8 @@ public class FileSystem {
         if (fd.fileLength + bytes > FSConfig.BLOCK_SIZE * FSConfig.BLOCKS_PER_FILE) {
             throw new FileSizeExceededException();
         }
-        int occupiedNum = (fd.fileLength + FSConfig.BLOCK_SIZE - 1) / FSConfig.BLOCK_SIZE;
-        int freeBytes = occupiedNum * FSConfig.BLOCK_SIZE - fd.fileLength;
+        int blocksNum = (fd.fileLength + FSConfig.BLOCK_SIZE - 1) / FSConfig.BLOCK_SIZE;
+        int freeBytes = blocksNum * FSConfig.BLOCK_SIZE - fd.fileLength;
         int toAllocateNum = (bytes - freeBytes + FSConfig.BLOCK_SIZE - 1) / FSConfig.BLOCK_SIZE;
         if (toAllocateNum == 0) {
             //Nothing to allocate
@@ -76,10 +76,41 @@ public class FileSystem {
             throw new NotEnoughFreeBlocksException(toAllocateNum, freeBlocks.size());
         }
         for (int blockIndex : freeBlocks) {
-            fd.blockArray[occupiedNum++] = blockIndex;
+            fd.blockArray[blocksNum++] = blockIndex;
             bitMap.set(blockIndex);
         }
         writeBitMap(bitMap);
+    }
+
+    /*
+     * Changes file length to newLength, freeing disk blocks if possible.
+     * Does NOT write file descriptor on disk.
+     */
+    private void shrinkFile(FileDescriptor fd, int newLength) {
+        assert newLength <= fd.fileLength;
+
+        int blocksNum = (fd.fileLength + FSConfig.BLOCK_SIZE - 1) / FSConfig.BLOCK_SIZE;
+        int newBlocksNum = (newLength + FSConfig.BLOCK_SIZE - 1) / FSConfig.BLOCK_SIZE;
+        fd.fileLength = newLength;
+        if (blocksNum == newBlocksNum) {
+            return;
+        }
+        BitSet bitMap = readBitMap();
+        while (blocksNum > newBlocksNum) {
+            assert fd.blockArray[blocksNum - 1] > 0;
+
+            bitMap.clear(fd.blockArray[--blocksNum]);
+        }
+        writeBitMap(bitMap);
+    }
+
+    private boolean fileExists(String fileName) {
+        for (var file : getAllFiles()) {
+            if (file.first.equals(fileName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private byte[] readFromFile(OftEntry entry, FileDescriptor fd, int bytes) {
@@ -245,7 +276,9 @@ public class FileSystem {
             throw new TooLongFileNameException(fileName);
         } else if (dirDescriptor.fileLength / FSConfig.DIRECTORY_ENTRY_SIZE >= FSConfig.MAX_FILES_IN_DIR) {
             throw new TooManyFilesException();
-        } //TODO Check if file already exists.
+        } else if (fileExists(fileName)) {
+            throw new FileAlreadyExistsException(fileName);
+        }
 
         //Calculate offset to read file descriptors
         int offset = FSConfig.BLOCKS_NUM + FSConfig.FILE_DESCRIPTOR_SIZE;
@@ -285,8 +318,48 @@ public class FileSystem {
         writer.write(FileDescriptor.asByteArray(fd));
     }
 
-    public void destroy(String fileName) {
+    public void destroy(String fileName) throws FileNotFoundException, FileIsOpenException {
+        Pair<DirectoryEntry, Integer> fileInfo = findFileInDirectory(fileName);
+        int deIndex = fileInfo.second;
 
+        if (deIndex == -1) {
+            throw new FileNotFoundException();
+        }
+        DirectoryEntry de = fileInfo.first;
+        if (oft.getOftIndex(de.fdIndex) != -1) {
+            throw new FileIsOpenException(fileName);
+        }
+
+        //Delete file from disk
+        //Free disk blocks
+        shrinkFile(getDescriptor(de.fdIndex), 0);
+        //Free file descriptor
+        int offset = FSConfig.BLOCKS_NUM + FSConfig.FILE_DESCRIPTOR_SIZE * de.fdIndex;
+        int blockIndex = offset / FSConfig.BLOCK_SIZE;
+        int blockOffset = offset % FSConfig.BLOCK_SIZE;
+        DiskWriter writer = new DiskWriter(ios, blockIndex, blockOffset);
+        writer.write(FileDescriptor.asByteArray(new FileDescriptor()));
+        writer.flush();
+
+        //NOTE: Check offsets later;
+        //Remove directory entry
+        OftEntry dir = oft.getFile(0);
+        FileDescriptor dirDescriptor = getDescriptor(0);
+        //Find last directory entry
+        lSeek(dir, dirDescriptor, dirDescriptor.fileLength - FSConfig.DIRECTORY_ENTRY_SIZE);
+        de = DirectoryEntry.formByteArray(readFromFile(dir, dirDescriptor, FSConfig.DIRECTORY_ENTRY_SIZE));
+        //Replace removed DE with last DE
+        lSeek(dir, dirDescriptor, FSConfig.DIRECTORY_ENTRY_SIZE * deIndex);
+        try {
+            writeToFile(dir, dirDescriptor, DirectoryEntry.asByteArray(de));
+        } catch (FileSizeExceededException | NotEnoughFreeBlocksException e) {
+            throw new IllegalStateException("Looks like DirectoryEntry is outside directory file...");
+        }
+        shrinkFile(dirDescriptor, dirDescriptor.fileLength - FSConfig.DIRECTORY_ENTRY_SIZE);
+
+        //Write directory descriptor on disk.
+        writer = new DiskWriter(ios, FSConfig.BLOCKS_NUM / FSConfig.BLOCK_SIZE, FSConfig.BLOCKS_NUM % FSConfig.BLOCK_SIZE);
+        writer.write(FileDescriptor.asByteArray(dirDescriptor));
     }
 
     private int lSeek(OftEntry fileEntry, FileDescriptor fDesc, int pos) {
@@ -302,13 +375,12 @@ public class FileSystem {
         }
     }
 
-    public Pair findFileInDirectory(String fileName) {
+    public Pair<DirectoryEntry, Integer> findFileInDirectory(String fileName) {
         // function return file directory with idx or
         // file directory with idx = -1 if not found
         OftEntry dirOftEntry = oft.getFile(0);
         FileDescriptor dirFd = getDescriptor(0);
-        if(lSeek(dirOftEntry, dirFd, 0) == 1)
-            dirOftEntry.fPos = 0;
+        lSeek(dirOftEntry, dirFd, 0);
         int numOFFilesInDir = dirFd.fileLength / FSConfig.FILE_DESCRIPTOR_SIZE;
         int dirEntryIdx = 0;
         for (int i = 0; i < numOFFilesInDir; i++) {
@@ -321,8 +393,7 @@ public class FileSystem {
                 return file;
             }
         }
-        Pair<DirectoryEntry, Integer> file = new Pair<>(new DirectoryEntry(), -1);
-        return file;
+        return new Pair<>(new DirectoryEntry(), -1);
     }
 
     public int open(String fileName) {
@@ -350,4 +421,24 @@ public class FileSystem {
         oft.removeOftEntry(oftIndex);
         return 1;
     }
+
+    /*
+     * Returns names and lengths of all files in root directory.
+     */
+    public List<Pair<String, Integer>> getAllFiles() {
+        OftEntry dir = oft.getFile(0);
+        FileDescriptor dirDescriptor = getDescriptor(0);
+        lSeek(dir, dirDescriptor, 0);
+
+        int filesNum = dirDescriptor.fileLength / FSConfig.DIRECTORY_ENTRY_SIZE;
+        List<Pair<String, Integer>> res = new ArrayList<>(filesNum);
+        for (int i = 0; i < filesNum; ++i) {
+            DirectoryEntry de = DirectoryEntry.formByteArray(readFromFile(dir, dirDescriptor, FSConfig.DIRECTORY_ENTRY_SIZE));
+            FileDescriptor fd = getDescriptor(de.fdIndex);
+            res.get(i).first = de.filename;
+            res.get(i).second = fd.fileLength;
+        }
+        return res;
+    }
+
 }

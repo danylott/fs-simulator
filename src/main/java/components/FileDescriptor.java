@@ -14,6 +14,7 @@ public class FileDescriptor {
         blockArray = new int[FSConfig.BLOCKS_PER_FILE];
     }
 
+    //blockArray[i] == 0 -> i-th block is not reserved.
     public FileDescriptor(int fileLength, int[] blockArray) {
         assert blockArray.length == FSConfig.BLOCKS_PER_FILE;
 
