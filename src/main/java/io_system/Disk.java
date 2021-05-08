@@ -9,17 +9,11 @@ public class Disk extends IOSystemInterface {
     protected int blockLen;
     protected byte[][] lDisk;
 
-    public Disk() {
-        blocksNum = 0;
-        blockLen = 0;
-    }
-
-    public void init(int blocksLength, int blocksNumber, String systemStatePath) throws IOException {
+    public Disk(int blocksLength, int blocksNumber) {
         this.blocksNum = blocksNumber;
         this.blockLen = blocksLength;
-        init(systemStatePath);
+        lDisk = new byte[blocksNumber][blocksLength];
     }
-
     // N:::CleanUp when end
 
     @Override

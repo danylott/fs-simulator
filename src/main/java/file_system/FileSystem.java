@@ -3,10 +3,12 @@ package file_system;
 import auxiliary.Pair;
 import components.DirectoryEntry;
 import components.FileDescriptor;
+import io_system.Disk;
 import io_system.IOSystemInterface;
 import exceptions.*;
 import utils.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.LinkedList;
@@ -15,6 +17,68 @@ import java.util.List;
 public class FileSystem {
     private IOSystemInterface ios;
     private OftInterface oft;
+
+    /*
+     * Use of uninitialized file system will likely cause NullptrException;
+     *
+     * Initializes filesystem with given specs, tries to restore disk from given file.
+     * Sets up values in FSConfig. (encapsulation? who cares)
+     * // So the good solution is to have local FSConfig object here, and pass it wherever it is needed (like DiskStream, OFT, components, etc). Too much code for such a small project.
+     *
+     * @return: 1 if disk was restored, 2 - if the new was initialized.
+     */
+    public int init(int cylNum, int surfNum, int sectNum, int sectLen, String fileName) throws IOException {
+        //Saving old disk
+        if(ios != null) {
+            try {
+                ios.cleanup();
+            } catch (IOException ignored) {
+                //Saving old disk is not a primary task;
+            }
+        }
+
+        //Initializing file system
+        FSConfig.init(cylNum, surfNum, sectNum, sectLen);
+        ios = new Disk(FSConfig.BLOCK_SIZE, FSConfig.BLOCKS_NUM);
+        oft = new Oft();
+        //Trying to restore disk from file
+        if (ios.init(fileName)) {
+            //Could read disk from file, nice
+            //Open root directory
+            oft.addFile(0);
+            return 1;
+        } else {
+            //Initializing new disk
+            DiskWriter writer = new DiskWriter(ios, 0, 0);
+
+            //Creating bitmap
+            BitSet bitMap = new BitSet(FSConfig.BLOCKS_NUM);
+            for(int i = 0; i < FSConfig.RESERVED_BLOCKS_NUM; ++i) {
+                bitMap.set(i);
+            }
+            writer.write(bitMap.toByteArray());
+
+            //Creating file descriptors
+            //Directory descriptor
+            FileDescriptor dirDescriptor = new FileDescriptor();
+            dirDescriptor.fileLength = 0;
+            writer.write(FileDescriptor.asByteArray(dirDescriptor));
+            //Empty file descriptors
+            byte[] emptyDescriptor = FileDescriptor.asByteArray(new FileDescriptor());
+            for (int i = 0; i < FSConfig.MAX_FILES_IN_DIR; ++i)
+                writer.write(emptyDescriptor);
+            writer.flush();
+
+            //Open root directory
+            oft.addFile(0);
+            return 2;
+        }
+    }
+
+    public void save(String fileName) throws IOException {
+        closeAll();
+        ios.saveNewSystemState(fileName);
+    }
 
     private FileDescriptor getDescriptor(int index) {
         //calculate descriptor position in LDisk
@@ -111,6 +175,18 @@ public class FileSystem {
             }
         }
         return false;
+    }
+
+    private void closeAll(){
+        int n = oft.getNumOfOpenFiles();
+        for (int i = n - 1; i >= 0; --i) {
+            OftEntry file = oft.getFile(i);
+            try {
+                close(file.fDescIndex);
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException("Could not find open file with descriptor index " + file.fDescIndex);
+            }
+        }
     }
 
     private byte[] readFromFile(OftEntry entry, FileDescriptor fd, int bytes) {
@@ -460,5 +536,4 @@ public class FileSystem {
         }
         return res;
     }
-
 }

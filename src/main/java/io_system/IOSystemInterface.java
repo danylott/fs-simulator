@@ -15,17 +15,22 @@ public abstract class IOSystemInterface {
         return new File(filePath).exists();
     }
 
-    protected void init(String systemStatePath) throws IOException {
+    public boolean init(String systemStatePath) throws IOException {
         this.systemStatePath = systemStatePath;
-
         if(fileExists(systemStatePath)) {
             restoreSystemState();
+            return true;
+        } else {
+            return false;
         }
     }
 
-    protected void cleanup() throws IOException {
+    public boolean cleanup() throws IOException {
         if(fileExists(systemStatePath)) {
             saveSystemState();
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -42,7 +47,7 @@ public abstract class IOSystemInterface {
     /*
      * Changes system state file and saves the system.
      */
-    public void SaveNewSystemState(String filename) throws IOException {
+    public void saveNewSystemState(String filename) throws IOException {
         systemStatePath = filename;
         saveSystemState();
     }
