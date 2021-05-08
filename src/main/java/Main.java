@@ -1,10 +1,13 @@
+import auxiliary.Pair;
 import exceptions.*;
 import file_system.FSConfig;
 import file_system.FileSystem;
 import file_system.OftEntry;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -38,7 +41,7 @@ public class Main {
         return true;
     }
 
-    public static void main(String[] args) throws FileAlreadyExistsException, NoFreeDescriptorException, TooLongFileNameException, TooManyFilesException, FileNotFoundException {
+    public static void main(String[] args) throws FileAlreadyExistsException, NoFreeDescriptorException, TooLongFileNameException, TooManyFilesException, FileNotFoundException, FileIsOpenException, IncorrectRWParamsException, NotEnoughFreeBlocksException, FileSizeExceededException {
         FileSystem fs = new FileSystem();
         OftEntry oft = new OftEntry();
 
@@ -51,92 +54,114 @@ public class Main {
             String[] command = str.split(" ", 6);
             if (!command[0].equals("")){
                 if (Arrays.asList(commands).contains(command[0])) {
-                    // Exit (+)
+                    // Exit
                     if (command[0].equals("exit")){
                         if (checkArguments(command, 1)){
                             System.out.println(blue("closing system"));
                             exit = true;
                         }
                     }
-                    // Create (+)
+                    // Create
                     else if (command[0].equals("cr")){
                         if (checkArguments(command, 2)){
                             String name = command[1];
                             if (name.length() > FSConfig.MAX_FILENAME_LEN - 1)
                                 System.out.println(ErrorIncorrectSyntax);
                             else {
-//                                fs.create(name);
+                                fs.create(name);
                                 System.out.println(blue("file '" + name + "' created"));
                             }
                         }
-                    // Destroy (+)
+                    // Destroy
                     } else if (command[0].equals("de")) {
                         if (checkArguments(command, 2)){
                             String name = command[1];
-//                            fs.destroy(name);
+                            fs.destroy(name);
                             System.out.println(blue("file '" + name + "' destroyed"));
                         }
-                    // Open (+)
+                    // Open
                     } else if (command[0].equals("op")) {
                         if (checkArguments(command, 2)){
                             String name = command[1];
-//                             int oft_index = fs.open(name);
-//                             if (oft_index != -1) {
-//                                 System.out.println(blue("file '" + name + "' opened, index = " + String.valueOf(oft_index)));
-//                             } else {
-//                                 System.out.println(WarningFileNotFound);
-//                             }
+                             int oft_index = fs.open(name);
+                             if (oft_index != -1) {
+                                 System.out.println(blue("file '" + name + "' opened, index = " + String.valueOf(oft_index)));
+                             } else {
+                                 System.out.println(WarningFileNotFound);
+                             }
                         }
-                    // Close (+)
+                    // Close
                     } else if (command[0].equals("cl")) {
                         if (checkArguments(command, 2)){
                             int oft_index = Integer.getInteger(command[1]);
-                            fs.close(oft_index);
-                            System.out.println(blue("file '" + command[1] + "' closed"));
+                            int status = fs.close(oft_index);
+                            if (status == 1)
+                                System.out.println(blue("file '" + command[1] + "' closed"));
+                            else
+                                System.out.println(WarningFileNotFound);
                         }
-                    // Read (-)
+                    // Read
                     } else if (command[0].equals("rd")) {
                         if (checkArguments(command, 3)){
-                            int oft_index = Integer.getInteger(command[1]);
+                            int oftIndex = Integer.getInteger(command[1]);
                             int count = Integer.getInteger(command[2]);
-                            // No functions
-//                            System.out.println(blue("file '" + command[1] + "' closed"));
+                            byte[] read = fs.read(oftIndex, count);
+                            if (read.length != 0){
+                                System.out.print(blue(String.valueOf(count) + " bytes read: "));
+                                for (byte item : read) {
+                                    System.out.print(blue(String.valueOf(item)));
+                                }
+                                System.out.println();
+                            }
                         }
-                    // Write (-)
+                    // Write
                     } else if (command[0].equals("wr")) {
                         if (checkArguments(command, 4)){
                             int oft_index = Integer.getInteger(command[1]);
                             String strToWrite = command[2];
-                            char[] charToWrite = new char[strToWrite.length()];
-                            for (int i = 0; i < strToWrite.length(); i++) {
-                                charToWrite[i] = strToWrite.charAt(i);
-                            }
+                            byte[] strToByte = strToWrite.getBytes(StandardCharsets.UTF_8);
                             int count = Integer.getInteger(command[3]);
-
-//                            System.out.println(blue("file '" + command[1] + "' closed"));
+                            byte[] byteToWrite = new byte[count];
+                            for (int i = 0; i < count; i++) {
+                                byteToWrite[i] = strToByte[i];
+                            }
+                            fs.write(oft_index, byteToWrite);
+                            System.out.println(blue(String.valueOf(count) + " bytes written"));
                         }
-                    // Seek (-)
+                    // Seek
                     } else if (command[0].equals("sk")) {
                         if (checkArguments(command, 3)){
                             int oft_index = Integer.getInteger(command[1]);
                             int pos = Integer.getInteger(command[2]);
-//                            fs._lSeek()
-//                            System.out.println(blue("file '" + command[1] + "' closed"));
+                            int status = fs.seek(oft_index, pos);
+                            if (status == 1)
+                                System.out.println(blue("current position is " + String.valueOf(pos)));
+                            else
+                                System.out.println(WarningFileNotFound);
                         }
-                    // Directories (-)
+                    // Directories
                     } else if (command[0].equals("dr")) {
                         if (checkArguments(command, 0)){
-
+                            List<Pair<String, Integer>> files = fs.getAllFiles();
+                            if (files.size() == 0)
+                                System.out.println(blue("directory is empty"));
+                            else {
+                                for (int i = 0; i < files.size(); i++) {
+                                    System.out.print(blue(files.get(i).first + " " + String.valueOf(files.get(i).second) + " "));
+                                }
+                                System.out.println();
+                            }
                         }
-                    // Initialize (-)
+                    // Initialize
                     } else if (command[0].equals("in")) {
                         if (checkArguments(command, 6)){
-                            String filename;
+                            String filename = command[1];
+
                         }
                     // Save (-)
                     } else if (command[0].equals("sv")) {
                         if (checkArguments(command, 2)){
-                            String filename;
+                            int discCount = Integer.getInteger(command[1]);
                         }
                     }
                 }
