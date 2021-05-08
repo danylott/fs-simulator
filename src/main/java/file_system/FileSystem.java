@@ -270,6 +270,26 @@ public class FileSystem {
 //        return bytesWritten;
     }
 
+    public byte[] read(int oftIndex, int bytes) throws IncorrectRWParamsException {
+        int fdIndex = oft.getFDIndexByOftIndex(oftIndex);
+        if (bytes <= 0 || fdIndex == -1) {
+            throw new IncorrectRWParamsException(bytes, fdIndex);
+        }
+        OftEntry entry = oft.getFile(oftIndex);
+        FileDescriptor fd = getDescriptor(fdIndex);
+        return readFromFile(entry, fd, bytes);
+    }
+
+    public void write(int oftIndex, byte[] data) throws IncorrectRWParamsException, FileSizeExceededException, NotEnoughFreeBlocksException {
+        int fdIndex = oft.getFDIndexByOftIndex(oftIndex);
+        if (data.length <= 0 || fdIndex == -1) {
+            throw new IncorrectRWParamsException(data.length, fdIndex);
+        }
+        OftEntry entry = oft.getFile(oftIndex);
+        FileDescriptor fd = getDescriptor(fdIndex);
+        writeToFile(entry, fd, data);
+    }
+
     public void create(String fileName) throws TooManyFilesException, TooLongFileNameException, FileAlreadyExistsException, NoFreeDescriptorException {
         FileDescriptor dirDescriptor = getDescriptor(0);
         if (fileName.length() > FSConfig.MAX_FILENAME_LEN) {
