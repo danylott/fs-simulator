@@ -4,6 +4,7 @@ import file_system.FSConfig;
 import file_system.FileSystem;
 import file_system.OftEntry;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,8 +25,6 @@ public class Main {
 
     private static final String WarningFileNotFound = yellow("Warning: File not found");
 
-    private ArrayList<String> openedFiles;
-
     private static boolean checkArguments(String[] command, int required) {
         if (command.length < required) {
             System.out.println(ErrorMissedArgument);
@@ -41,13 +40,12 @@ public class Main {
         return true;
     }
 
-    public static void main(String[] args) throws FileAlreadyExistsException, NoFreeDescriptorException, TooLongFileNameException, TooManyFilesException, FileNotFoundException, IncorrectRWParamsException, FileSizeExceededException, NotEnoughFreeBlocksException, FileIsOpenException {
+    public static void main(String[] args) throws FileAlreadyExistsException, NoFreeDescriptorException, TooLongFileNameException, TooManyFilesException, FileNotFoundException, IncorrectRWParamsException, FileSizeExceededException, NotEnoughFreeBlocksException, FileIsOpenException, IOException {
         FileSystem fs = new FileSystem();
-        OftEntry oft = new OftEntry();
 
         boolean exit = false;
         Scanner in = new Scanner(System.in);
-        String str = "";
+        String str;
 
         while (!exit) {
             str = in.nextLine();
@@ -155,13 +153,24 @@ public class Main {
                         // Initialize
                     } else if (command[0].equals("in")) {
                         if (checkArguments(command, 6)){
-                            String filename = command[1];
+                            int cylNum = Integer.getInteger(command[1]);
+                            int surfNum = Integer.getInteger(command[2]);
+                            int sectNum = Integer.getInteger(command[3]);
+                            int sectLen = Integer.getInteger(command[4]);
+                            String filename = command[5];
+                            int status = fs.init(cylNum, surfNum, sectNum, sectLen, filename);
+                            if (status == 1)
+                                System.out.println(blue("disk restored"));
+                            else if (status == 2)
+                                System.out.println("disk initialized");
 
                         }
-                        // Save (-)
+                        // Save
                     } else if (command[0].equals("sv")) {
                         if (checkArguments(command, 2)){
-                            int discCount = Integer.getInteger(command[1]);
+                            String filename = command[1];
+                            fs.save(filename);
+                            System.out.println(blue("disk saved"));
                         }
                     }
                 }
