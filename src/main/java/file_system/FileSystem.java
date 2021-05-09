@@ -395,6 +395,15 @@ public class FileSystem {
         }
     }
 
+    public int seek(int oft_index, int pos) {
+        int fd_index = oft.getFDIndexByOftIndex(oft_index);
+        if (fd_index == -1)
+            return -1;
+        OftEntry fileEntry = oft.getFile(oft_index);
+        FileDescriptor fd = getDescriptor(fd_index);
+        return lSeek(fileEntry, fd, pos);
+    }
+
     public Pair<DirectoryEntry, Integer> findFileInDirectory(String fileName) {
         // function return file directory with idx or
         // file directory with idx = -1 if not found
