@@ -91,7 +91,7 @@ public class Main {
                         // Close
                     } else if (command[0].equals("cl")) {
                         if (checkArguments(command, 2)){
-                            int oft_index = Integer.getInteger(command[1]);
+                            int oft_index = Integer.parseInt(command[1]);
                             int status = fs.close(oft_index);
                             if (status == 1)
                                 System.out.println(blue("file '" + command[1] + "' closed"));
@@ -101,8 +101,8 @@ public class Main {
                         // Read
                     } else if (command[0].equals("rd")) {
                         if (checkArguments(command, 3)){
-                            int oftIndex = Integer.getInteger(command[1]);
-                            int count = Integer.getInteger(command[2]);
+                            int oftIndex = Integer.parseInt(command[1]);
+                            int count = Integer.parseInt(command[2]);
                             byte[] read = fs.read(oftIndex, count);
                             if (read.length != 0){
                                 System.out.print(blue(String.valueOf(count) + " bytes read: "));
@@ -115,10 +115,10 @@ public class Main {
                         // Write
                     } else if (command[0].equals("wr")) {
                         if (checkArguments(command, 4)){
-                            int oft_index = Integer.getInteger(command[1]);
+                            int oft_index = Integer.parseInt(command[1]);
                             String strToWrite = command[2];
                             byte[] strToByte = strToWrite.getBytes(StandardCharsets.UTF_8);
-                            int count = Integer.getInteger(command[3]);
+                            int count = Integer.parseInt(command[3]);
                             byte[] byteToWrite = new byte[count];
                             for (int i = 0; i < count; i++) {
                                 byteToWrite[i] = strToByte[i];
@@ -129,8 +129,8 @@ public class Main {
                         // Seek
                     } else if (command[0].equals("sk")) {
                         if (checkArguments(command, 3)){
-                            int oft_index = Integer.getInteger(command[1]);
-                            int pos = Integer.getInteger(command[2]);
+                            int oft_index = Integer.parseInt(command[1]);
+                            int pos = Integer.parseInt(command[2]);
                             int status = fs.seek(oft_index, pos);
                             if (status == 1)
                                 System.out.println(blue("current position is " + String.valueOf(pos)));
@@ -153,10 +153,10 @@ public class Main {
                         // Initialize
                     } else if (command[0].equals("in")) {
                         if (checkArguments(command, 6)){
-                            int cylNum = Integer.getInteger(command[1]);
-                            int surfNum = Integer.getInteger(command[2]);
-                            int sectNum = Integer.getInteger(command[3]);
-                            int sectLen = Integer.getInteger(command[4]);
+                            int cylNum = Integer.parseInt(command[1]);
+                            int surfNum = Integer.parseInt(command[2]);
+                            int sectNum = Integer.parseInt(command[3]);
+                            int sectLen = Integer.parseInt(command[4]);
                             String filename = command[5];
                             int status = fs.init(cylNum, surfNum, sectNum, sectLen, filename);
                             if (status == 1)
