@@ -26,5 +26,5 @@ public abstract class OftInterface {
 
     public abstract int getNumOfOpenFiles();
 
-    public abstract int getFDIndexByOftIndex(int _oftIndex) throws OFTException;
+    public abstract int getFDIndex(int _oftIndex) throws OFTException;
 }

@@ -66,7 +66,7 @@ public class Oft extends OftInterface {
     }
 
     @Override
-    public int getFDIndexByOftIndex(int _oftIndex) throws OFTException {
+    public int getFDIndex(int _oftIndex) throws OFTException {
         checkOftIndex(_oftIndex);
         OftEntry file = entriesBuffer.get(_oftIndex);
         if (file.fDescIndex == -1) {

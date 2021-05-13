@@ -2,11 +2,9 @@ import auxiliary.Pair;
 import exceptions.*;
 import file_system.FSConfig;
 import file_system.FileSystem;
-import file_system.OftEntry;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -40,7 +38,7 @@ public class Main {
         return true;
     }
 
-    public static void main(String[] args) throws FileAlreadyExistsException, NoFreeDescriptorException, TooLongFileNameException, TooManyFilesException, FileNotFoundException, IncorrectRWParamsException, FileSizeExceededException, NotEnoughFreeBlocksException, FileIsOpenException, IOException {
+    public static void main(String[] args) throws IOException, FSException, OFTException, ReadWriteException, AllocationException {
         FileSystem fs = new FileSystem();
 
         boolean exit = false;
@@ -81,10 +79,10 @@ public class Main {
                     } else if (command[0].equals("op")) {
                         if (checkArguments(command, 2)){
                             String name = command[1];
-                            int oft_index = fs.open(name);
-                            if (oft_index != -1) {
+                            try {
+                                int oft_index = fs.open(name);
                                 System.out.println(blue("file '" + name + "' opened, index = " + String.valueOf(oft_index)));
-                            } else {
+                            } catch (Exception e) {
                                 System.out.println(WarningFileNotFound);
                             }
                         }
@@ -92,11 +90,12 @@ public class Main {
                     } else if (command[0].equals("cl")) {
                         if (checkArguments(command, 2)){
                             int oft_index = Integer.parseInt(command[1]);
-                            int status = fs.close(oft_index);
-                            if (status == 1)
+                            try {
+                                fs.close(oft_index);
                                 System.out.println(blue("file '" + command[1] + "' closed"));
-                            else
+                            } catch (Exception e) {
                                 System.out.println(WarningFileNotFound);
+                            }
                         }
                         // Read
                     } else if (command[0].equals("rd")) {
