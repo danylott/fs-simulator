@@ -463,6 +463,13 @@ public class FileSystem {
             if (pos < 0 || pos > fDesc.fileLength) {
                 return -1;
             }
+
+            while (fileEntry.fPos != pos){
+                ios.write_block(fileEntry.fPos, fileEntry.readWriteBuffer);
+                fileEntry.fPos++;
+                fileEntry.readWriteBuffer = ios.read_block(fileEntry.fPos);
+            }
+
             fileEntry.fPos = pos;
             return 1;
         }
