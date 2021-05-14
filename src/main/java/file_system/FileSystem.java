@@ -180,14 +180,10 @@ public class FileSystem {
     }
 
     private void closeAll(){
-        int n = oft.getNumOfOpenFiles();
-        for (int i = n - 1; i >= 0; --i) {
+        for (int i = FSConfig.MAX_OPEN_FILES; i >= 0; --i) {
             try {
-                OftEntry file = oft.getFile(i);
-                close(file.fDescIndex);
-            } catch (OFTException e) {
-                throw new IllegalStateException(e.getMessage());
-            }
+                close(i);
+            } catch (OFTException ignored) {}
         }
     }
 
