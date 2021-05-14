@@ -476,7 +476,7 @@ public class FileSystem {
         for (int i = 0; i < numOFFilesInDir; i++) {
             DirectoryEntry curDirEntry = null;
             try {
-                curDirEntry = DirectoryEntry.formByteArray(read(0, FSConfig.FILE_DESCRIPTOR_SIZE));
+                curDirEntry = DirectoryEntry.formByteArray(read(0, FSConfig.DIRECTORY_ENTRY_SIZE));
             } catch (ReadWriteException e) {
                 //cannot happen
                 throw new IllegalStateException(e.getMessage());

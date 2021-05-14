@@ -118,6 +118,12 @@ public class Main {
                             String strToWrite = command[2];
                             byte[] strToByte = strToWrite.getBytes(StandardCharsets.UTF_8);
                             int count = Integer.parseInt(command[3]);
+//                            in 4 2 8 64 disk0.txt
+//                            cr foo
+//                            op foo
+//                            wr 1 x 60
+                            if (count > strToByte.length)
+                                count = strToByte.length;
                             byte[] byteToWrite = new byte[count];
                             for (int i = 0; i < count; i++) {
                                 byteToWrite[i] = strToByte[i];
