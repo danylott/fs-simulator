@@ -264,7 +264,7 @@ public class FileSystem {
         return res;
     }
 
-    public void write(int oftIndex, byte[] data) throws OFTException, ReadWriteException, AllocationException {
+    public int write(int oftIndex, byte[] data) throws OFTException, ReadWriteException, AllocationException {
         FileDescriptor fd = getDescriptor(oft.getFDIndex(oftIndex));
         OftEntry entry = oft.getFile(oftIndex);
 
@@ -280,7 +280,7 @@ public class FileSystem {
         int blockOffset = entry.fPos % ios.blockLen();
         int tempFileLength = fd.fileLength;
 
-        while (data.length + blockOffset > ios.blockLen()) {
+        while (data.length - bytesWritten + blockOffset > ios.blockLen()) {
             int bytesToAlloc = Integer.max(0, ios.blockLen() - blockOffset - fd.fileLength + entry.fPos);
             reserveBytesForFile(fd, bytesToAlloc);
             if (entry.readBlockIndex != blockIndex) {
@@ -313,33 +313,31 @@ public class FileSystem {
         int bytes = data.length - bytesWritten;
         int bytesToAlloc = Integer.max(0, bytes - fd.fileLength + entry.fPos);
 
-        try {
-            reserveBytesForFile(fd, bytesToAlloc);
-            if (entry.readBlockIndex != blockIndex) {
-                if (entry.blockModified) {
-                    ios.write_block(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
-                    entry.blockModified = false;
-                }
-                entry.blockRead = false;
-                entry.readBlockIndex = -1;
-            }
-            if (!entry.blockRead) {
-                entry.readWriteBuffer = ios.read_block(fd.blockArray[blockIndex]);
-                entry.blockRead = true;
-                entry.readBlockIndex = blockIndex;
-            }
-            System.arraycopy(data, bytesWritten, entry.readWriteBuffer, blockOffset, bytes);
-            bytesWritten += bytes;
-            if (bytes == ios.blockLen()) {
-                ios.write_block(fd.blockArray[blockIndex], entry.readWriteBuffer);
+        reserveBytesForFile(fd, bytesToAlloc);
+        if (entry.readBlockIndex != blockIndex) {
+            if (entry.blockModified) {
+                ios.write_block(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
                 entry.blockModified = false;
-                entry.blockRead = true;
-            } else {
-                entry.blockRead = true;
-                entry.blockModified = true;
             }
-            entry.fPos += bytes;
-        } catch (Exception ignored) {}
+            entry.blockRead = false;
+            entry.readBlockIndex = -1;
+        }
+        if (!entry.blockRead) {
+            entry.readWriteBuffer = ios.read_block(fd.blockArray[blockIndex]);
+            entry.blockRead = true;
+            entry.readBlockIndex = blockIndex;
+        }
+        System.arraycopy(data, bytesWritten, entry.readWriteBuffer, blockOffset, bytes);
+        bytesWritten += bytes;
+        if (bytes == ios.blockLen()) {
+            ios.write_block(fd.blockArray[blockIndex], entry.readWriteBuffer);
+            entry.blockModified = false;
+            entry.blockRead = true;
+        } else {
+            entry.blockRead = true;
+            entry.blockModified = true;
+        }
+        entry.fPos += bytes;
 
         if (entry.fPos > tempFileLength) {
             fd.fileLength = entry.fPos;
@@ -349,6 +347,7 @@ public class FileSystem {
             DiskWriter fOut = new DiskWriter(ios, fdBlockIndex, fdOffset);
             fOut.write(FileDescriptor.asByteArray(fd));
         }
+        return bytesWritten;
     }
 
     public void create(String fileName) throws FSException, OFTException {
@@ -451,13 +450,6 @@ public class FileSystem {
         if (pos < 0 || pos > fd.fileLength) {
             return -1;
         }
-        /*
-        while (fileEntry.fPos != pos){
-            ios.write_block(fileEntry.fPos, fileEntry.readWriteBuffer);
-            fileEntry.fPos++;
-            fileEntry.readWriteBuffer = ios.read_block(fileEntry.fPos);
-        }
-        */
         file.fPos = pos;
         return 1;
     }
@@ -468,7 +460,7 @@ public class FileSystem {
         FileDescriptor dirFd = getDescriptor(0);
         seek(0, 0);
         int numOFFilesInDir = dirFd.fileLength / FSConfig.DIRECTORY_ENTRY_SIZE;
-        int dirEntryIdx = 0;
+        int dirEntryIdx;
         for (int i = 0; i < numOFFilesInDir; i++) {
             DirectoryEntry curDirEntry = null;
             try {
