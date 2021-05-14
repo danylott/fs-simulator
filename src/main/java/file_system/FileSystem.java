@@ -358,11 +358,11 @@ public class FileSystem {
     public void create(String fileName) throws FSException, OFTException {
         FileDescriptor dirDescriptor = getDescriptor(0);
         if (fileName.length() > FSConfig.MAX_FILENAME_LEN) {
-            throw new FSException("File name + " + fileName + "is too long. Maximum length: " + FSConfig.MAX_FILENAME_LEN);
+            throw new FSException("File name + " + fileName + " is too long. Maximum length: " + FSConfig.MAX_FILENAME_LEN);
         } else if (dirDescriptor.fileLength / FSConfig.DIRECTORY_ENTRY_SIZE >= MAX_FILES_IN_DIR) {
             throw new FSException("Directory is full");
         } else if (fileExists(fileName)) {
-            throw new FSException("File named " + fileName + "already exists");
+            throw new FSException("File named " + fileName + " already exists");
         }
 
         //Calculate offset to read file descriptors
@@ -523,8 +523,7 @@ public class FileSystem {
             try {
                 DirectoryEntry de = DirectoryEntry.formByteArray(read(0, FSConfig.DIRECTORY_ENTRY_SIZE));
                 FileDescriptor fd = getDescriptor(de.fdIndex);
-                res.get(i).first = de.filename;
-                res.get(i).second = fd.fileLength;
+                res.add(new Pair<>(de.filename, fd.fileLength));
             } catch (ReadWriteException e) {
                 throw new IllegalStateException(e.getMessage());
             }

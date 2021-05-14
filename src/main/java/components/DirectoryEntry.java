@@ -23,7 +23,7 @@ public class DirectoryEntry {
 
         DirectoryEntry res = new DirectoryEntry();
         res.fdIndex = ByteBuffer.wrap(Arrays.copyOf(data, Integer.BYTES)).getInt();
-        res.filename = new String(Arrays.copyOfRange(data, Integer.BYTES, data.length), StandardCharsets.UTF_8);
+        res.filename = new String(Arrays.copyOfRange(data, Integer.BYTES, data.length), StandardCharsets.UTF_8).trim();
         return res;
     }
 
