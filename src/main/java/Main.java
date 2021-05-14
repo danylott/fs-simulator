@@ -38,6 +38,11 @@ public class Main {
         return true;
     }
 
+    private static String getCharForNumber(byte i) {
+        int num = (int) i;
+        return String.valueOf((char) num);
+    }
+
     public static void main(String[] args) throws IOException, FSException, OFTException, ReadWriteException, AllocationException {
         FileSystem fs = new FileSystem();
 
@@ -106,7 +111,7 @@ public class Main {
                             if (read.length != 0){
                                 System.out.print(blue(String.valueOf(count) + " bytes read: "));
                                 for (byte item : read) {
-                                    System.out.print(blue(String.valueOf(item)));
+                                    System.out.print(blue(getCharForNumber(item)));
                                 }
                                 System.out.println();
                             }
