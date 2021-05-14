@@ -1,6 +1,5 @@
 package utils;
 
-import file_system.FSConfig;
 import io_system.IOSystemInterface;
 
 public class DiskStream {
@@ -11,8 +10,8 @@ public class DiskStream {
     protected boolean blockRead;
 
     public DiskStream(IOSystemInterface ios, int blockIndex, int shift) {
-        assert 0 <= blockIndex && blockIndex < FSConfig.BLOCKS_NUM;
-        assert 0 <= shift && shift < FSConfig.BLOCK_SIZE;
+        assert 0 <= blockIndex && blockIndex < ios.blocksNum();
+        assert 0 <= shift && shift < ios.blockLen();
 
         this.ios = ios;
         this.blockIndex = blockIndex;

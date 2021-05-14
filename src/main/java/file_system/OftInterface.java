@@ -2,16 +2,20 @@ package file_system;
 
 import exceptions.OFTException;
 
-import java.util.ArrayList;
-
 public abstract class OftInterface {
-    protected static final int FDOPENEDLIMIT = 128;
+
 
     protected int oftSize = 0;
-    protected ArrayList<OftEntry> entriesBuffer = new ArrayList<>(FDOPENEDLIMIT);
+    protected OftEntry[] entriesBuffer = new OftEntry[FSConfig.MAX_OPEN_FILES];
+
+    public OftInterface() {
+        for(int i = 0; i < FSConfig.MAX_OPEN_FILES; ++i) {
+            entriesBuffer[i] = new OftEntry();
+        }
+    }
 
     protected void checkOftIndex(int _oftIndex) throws OFTException {
-        if (_oftIndex < 0 || _oftIndex >= OftInterface.FDOPENEDLIMIT) {
+        if (_oftIndex < 0 || _oftIndex >= FSConfig.MAX_OPEN_FILES) {
             throw new OFTException("File index " + _oftIndex + " is out of bounds");
         }
     }

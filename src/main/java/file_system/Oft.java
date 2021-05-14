@@ -1,6 +1,5 @@
 package file_system;
 
-import components.DirectoryEntry;
 import exceptions.OFTException;
 
 public class Oft extends OftInterface {
@@ -10,17 +9,17 @@ public class Oft extends OftInterface {
             throw new OFTException("File descriptor index " + _fdIndex + " is out of bounds");
         }
 
-        for (int i = 0; i < entriesBuffer.size(); i++) {
-            if (entriesBuffer.get(i).fDescIndex == _fdIndex)
+        for (int i = 0; i < entriesBuffer.length; i++) {
+            if (entriesBuffer[i].fDescIndex == _fdIndex)
                 return i;
         }
-        throw new OFTException("No open file by descriptor index " + _fdIndex);
+        return -1;
     }
 
     @Override
     public int addFile(int _fdIndex) throws OFTException {
         // if file exists or no free space in oft
-        if (oftSize == OftInterface.FDOPENEDLIMIT) {
+        if (oftSize == FSConfig.MAX_OPEN_FILES) {
             throw new OFTException("Open file table if full");
         } else if (getOftIndex(_fdIndex) >= 0) {
             throw new OFTException("File is already open");
@@ -29,9 +28,9 @@ public class Oft extends OftInterface {
         OftEntry newOftEntry = new OftEntry();
         newOftEntry.fDescIndex = _fdIndex;
 
-        for (int i = 0; i < OftInterface.FDOPENEDLIMIT; i++) {
-            if (entriesBuffer.get(i).fDescIndex == -1) {
-                entriesBuffer.set(i, newOftEntry);
+        for (int i = 0; i < FSConfig.MAX_OPEN_FILES; i++) {
+            if (entriesBuffer[i].fDescIndex == -1) {
+                entriesBuffer[i] = newOftEntry;
                 oftSize++;
                 return i;
             }
@@ -42,7 +41,7 @@ public class Oft extends OftInterface {
     @Override
     public OftEntry getFile(int _oftIndex) throws OFTException {
         checkOftIndex(_oftIndex);
-        OftEntry file = entriesBuffer.get(_oftIndex);
+        OftEntry file = entriesBuffer[_oftIndex];
         if (file.fDescIndex == -1) {
             throw new OFTException("No open file by index " + _oftIndex);
         }
@@ -52,11 +51,11 @@ public class Oft extends OftInterface {
     @Override
     public void removeOftEntry(int _oftIndex) throws OFTException {
         checkOftIndex(_oftIndex);
-        entriesBuffer.get(_oftIndex).fDescIndex = -1;
-        entriesBuffer.get(_oftIndex).blockModified = false;
-        entriesBuffer.get(_oftIndex).blockRead = false;
-        entriesBuffer.get(_oftIndex).fPos = 0;
-        entriesBuffer.get(_oftIndex).readBlockIndex = -1;
+        entriesBuffer[_oftIndex].fDescIndex = -1;
+        entriesBuffer[_oftIndex].blockModified = false;
+        entriesBuffer[_oftIndex].blockRead = false;
+        entriesBuffer[_oftIndex].fPos = 0;
+        entriesBuffer[_oftIndex].readBlockIndex = -1;
         oftSize--;
     }
 
@@ -68,7 +67,7 @@ public class Oft extends OftInterface {
     @Override
     public int getFDIndex(int _oftIndex) throws OFTException {
         checkOftIndex(_oftIndex);
-        OftEntry file = entriesBuffer.get(_oftIndex);
+        OftEntry file = entriesBuffer[_oftIndex];
         if (file.fDescIndex == -1) {
             throw new OFTException("No open file by index " + _oftIndex);
         }

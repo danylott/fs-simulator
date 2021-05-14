@@ -31,6 +31,16 @@ public class Disk extends IOSystemInterface {
     }
 
     @Override
+    public int blockLen() {
+        return blockLen;
+    }
+
+    @Override
+    public int blocksNum() {
+        return blocksNum;
+    }
+
+    @Override
     protected void saveSystemState() throws IOException {
         RandomAccessFile file = new RandomAccessFile(this.systemStatePath, "rw");
 

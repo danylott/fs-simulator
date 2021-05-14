@@ -31,7 +31,7 @@ public class DirectoryEntry {
         byte[] res = Arrays.copyOf(ByteBuffer.allocate(Integer.BYTES).putInt(de.fdIndex).array()
                 , FSConfig.MAX_FILENAME_LEN + Integer.BYTES);
         if (de.filename != null) {
-            System.arraycopy(de.filename.getBytes(StandardCharsets.UTF_8), 0, res, Integer.BYTES, FSConfig.MAX_FILENAME_LEN);
+            System.arraycopy(Arrays.copyOf(de.filename.getBytes(StandardCharsets.UTF_8), FSConfig.MAX_FILENAME_LEN), 0, res, Integer.BYTES, FSConfig.MAX_FILENAME_LEN);
         }
         return res;
     }

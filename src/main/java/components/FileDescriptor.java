@@ -26,8 +26,12 @@ public class FileDescriptor {
         assert data.length == FSConfig.FILE_DESCRIPTOR_SIZE;
 
         FileDescriptor res = new FileDescriptor();
-        res.fileLength = ByteBuffer.wrap(Arrays.copyOf(data, Integer.BYTES)).getInt();
-        res.blockArray = ByteBuffer.wrap(Arrays.copyOfRange(data, Integer.BYTES, data.length)).asIntBuffer().array();
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        bb.rewind();
+        res.fileLength = bb.getInt();
+        for(int i = 0; i < FSConfig.BLOCKS_PER_FILE; ++i) {
+            res.blockArray[i] = bb.getInt();
+        }
         return res;
     }
 
