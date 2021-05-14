@@ -2,6 +2,8 @@ package utils;
 
 import io_system.IOSystemInterface;
 
+import java.util.Arrays;
+
 public class DiskWriter extends DiskStream {
     public DiskWriter(IOSystemInterface ios, int blockIndex, int shift) {
         super(ios, blockIndex, shift);
