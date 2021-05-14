@@ -44,6 +44,10 @@ public abstract class IOSystemInterface {
      */
     public abstract void write_block(int i, byte[] data);
 
+    public abstract int blockLen();
+
+    public abstract int blocksNum();
+
     /*
      * Changes system state file and saves the system.
      */
