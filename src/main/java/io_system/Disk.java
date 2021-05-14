@@ -43,11 +43,10 @@ public class Disk extends IOSystemInterface {
     @Override
     protected void saveSystemState() throws IOException {
         RandomAccessFile file = new RandomAccessFile(this.systemStatePath, "rw");
+        file.seek(0);
 
-        int offset = 0;
         for (int i = 0; i < this.blocksNum; i++){
-            file.write(lDisk[i], offset, this.blockLen);
-            offset += this.blockLen;
+            file.write(lDisk[i]);
         }
 
         file.close();
@@ -56,11 +55,10 @@ public class Disk extends IOSystemInterface {
     @Override
     protected void restoreSystemState() throws IOException {
         RandomAccessFile file = new RandomAccessFile(this.systemStatePath, "rw");
+        file.seek(0);
 
-        int offset = 0;
         for (int i = 0; i < this.blocksNum; i++){
-            file.read(lDisk[i], offset, this.blockLen);
-            offset += this.blockLen;
+            file.read(lDisk[i]);
         }
 
         file.close();
