@@ -68,9 +68,6 @@ public class Oft extends OftInterface {
     public int getFDIndex(int _oftIndex) throws OFTException {
         checkOftIndex(_oftIndex);
         OftEntry file = entriesBuffer[_oftIndex];
-        if (file.fDescIndex == -1) {
-            throw new OFTException("No open file by index " + _oftIndex);
-        }
         return file.fDescIndex;
     }
 }
