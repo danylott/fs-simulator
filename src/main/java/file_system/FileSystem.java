@@ -489,12 +489,12 @@ public class FileSystem {
         return new Pair<>(new DirectoryEntry(), -1);
     }
 
-    public int open(String fileName) throws OFTException {
+    public int open(String fileName) throws OFTException, FSException {
         // returns -1 if file with such fileName not found
         // or oftIndex if file found
         Pair<DirectoryEntry, Integer> file = findFileInDirectory(fileName);
         if (file.second == -1) {
-            return -1;
+            throw new FSException("Could not find file named " + fileName);
         }
         int fdIndex = file.first.fdIndex;
         fdCache.put(fdIndex, getDescriptor(fdIndex));
