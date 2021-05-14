@@ -471,7 +471,7 @@ public class FileSystem {
         // file directory entry with idx = -1 if not found
         FileDescriptor dirFd = getDescriptor(0);
         seek(0, 0);
-        int numOFFilesInDir = dirFd.fileLength / FSConfig.FILE_DESCRIPTOR_SIZE;
+        int numOFFilesInDir = dirFd.fileLength / FSConfig.DIRECTORY_ENTRY_SIZE;
         int dirEntryIdx = 0;
         for (int i = 0; i < numOFFilesInDir; i++) {
             DirectoryEntry curDirEntry = null;

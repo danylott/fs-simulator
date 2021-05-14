@@ -138,7 +138,7 @@ public class Main {
                         }
                         // Directories
                     } else if (command[0].equals("dr")) {
-                        if (checkArguments(command, 0)){
+                        if (checkArguments(command, 1)){
                             List<Pair<String, Integer>> files = fs.getAllFiles();
                             if (files.size() == 0)
                                 System.out.println(blue("directory is empty"));
@@ -161,7 +161,7 @@ public class Main {
                             if (status == 1)
                                 System.out.println(blue("disk restored"));
                             else if (status == 2)
-                                System.out.println("disk initialized");
+                                System.out.println(blue("disk initialized"));
 
                         }
                         // Save
