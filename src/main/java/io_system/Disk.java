@@ -9,7 +9,7 @@ public class Disk extends IOSystemInterface {
     protected int blockLen;
     protected byte[][] lDisk;
 
-    public Disk(int blocksLength, int blocksNumber) {
+    public Disk(int blocksNumber, int blocksLength) {
         this.blocksNum = blocksNumber;
         this.blockLen = blocksLength;
         lDisk = new byte[blocksNumber][blocksLength];
