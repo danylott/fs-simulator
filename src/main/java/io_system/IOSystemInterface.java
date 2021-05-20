@@ -37,12 +37,12 @@ public abstract class IOSystemInterface {
     /*
      * Copies block number i from disk.
      */
-    public abstract byte[] read_block(int i);
+    public abstract byte[] readBlock(int i);
 
     /*
      * Writes given data into block number i on the disk.
      */
-    public abstract void write_block(int i, byte[] data);
+    public abstract void writeBlock(int i, byte[] data);
 
     public abstract int blockLen();
 

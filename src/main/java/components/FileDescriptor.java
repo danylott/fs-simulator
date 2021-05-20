@@ -22,7 +22,7 @@ public class FileDescriptor {
         this.blockArray = blockArray;
     }
 
-    public static FileDescriptor formByteArray(byte[] data) {
+    public static FileDescriptor fromByteArray(byte[] data) {
         assert data.length == FSConfig.FILE_DESCRIPTOR_SIZE;
 
         FileDescriptor res = new FileDescriptor();
