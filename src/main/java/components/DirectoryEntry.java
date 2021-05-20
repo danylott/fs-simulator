@@ -18,7 +18,7 @@ public class DirectoryEntry {
         this.filename = filename;
     }
 
-    public static DirectoryEntry formByteArray(byte[] data) {
+    public static DirectoryEntry fromByteArray(byte[] data) {
         assert data.length == FSConfig.DIRECTORY_ENTRY_SIZE;
 
         DirectoryEntry res = new DirectoryEntry();

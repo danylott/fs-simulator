@@ -20,7 +20,7 @@ public class DiskReader extends DiskStream {
         while (bytes > 0) {
             if (!blockRead) {
                 //Buffer is outdated, read new block
-                blockBuffer = ios.read_block(blockIndex);
+                blockBuffer = ios.readBlock(blockIndex);
                 blockRead = true;
             }
             int readLen = min(ios.blockLen() - shift, bytes); //Bytes to read from current block;

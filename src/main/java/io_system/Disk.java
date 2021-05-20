@@ -17,14 +17,14 @@ public class Disk extends IOSystemInterface {
     // N:::CleanUp when end
 
     @Override
-    public byte[] read_block(int i) {
+    public byte[] readBlock(int i) {
         assert i > 0 && i < this.blocksNum;
 
         return Arrays.copyOf(lDisk[i], lDisk[i].length);
     }
 
     @Override
-    public void write_block(int i, byte[] data) {
+    public void writeBlock(int i, byte[] data) {
         assert i > 0 && i < this.blocksNum && data != null;
 
         lDisk[i] = Arrays.copyOf(data, data.length);

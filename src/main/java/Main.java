@@ -43,6 +43,21 @@ public class Main {
     }
 
     public static void main(String[] args) {
+        //in 4 2 8 64 disk0.txt
+        //cr foo
+        //op foo
+        //wr 1 x 60
+        //wr 1 y 10
+        //sk 1 55
+        //rd 1 10
+        //dr
+        //sv disk0.txt
+        //in 4 2 8 64 disk0.txt
+        //op foo
+        //rd 1 3
+        //cr foo
+        //cl 1
+        //dr
         FileSystem fs = new FileSystem();
 
         boolean exit = false;
@@ -121,7 +136,7 @@ public class Main {
                                 int count = Integer.parseInt(command[2]);
                                 byte[] read = fs.read(oftIndex, count);
                                 if (read.length != 0) {
-                                    System.out.print(blue(String.valueOf(count) + " bytes read: "));
+                                    System.out.print(blue(String.valueOf(read.length) + " bytes read: "));
                                     for (byte item : read) {
                                         System.out.print(blue(getCharForNumber(item)));
                                     }
@@ -135,12 +150,16 @@ public class Main {
                                 String strToWrite = command[2];
                                 byte[] strToByte = strToWrite.getBytes(StandardCharsets.UTF_8);
                                 int count = Integer.parseInt(command[3]);
-                                byte[] byteToWrite = new byte[count];
-                                for (int i = 0; i < count; i++) {
-                                    byteToWrite[i] = strToByte[0];
+                                if (count > 0){
+                                    byte[] byteToWrite = new byte[count];
+                                    for (int i = 0; i < count; i++) {
+                                        byteToWrite[i] = strToByte[0];
+                                    }
+                                    int res = fs.write(oft_index, byteToWrite);
+                                    System.out.println(blue(String.valueOf(res) + " bytes written"));
+                                } else {
+                                    System.out.println(blue("nothing to write"));
                                 }
-                                int res = fs.write(oft_index, byteToWrite);
-                                System.out.println(blue(String.valueOf(res) + " bytes written"));
                             }
                             // Seek
                         } else if (command[0].equals("sk")) {
