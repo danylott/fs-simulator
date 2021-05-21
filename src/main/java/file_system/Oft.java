@@ -57,16 +57,4 @@ public class Oft extends OftInterface {
         entriesBuffer[oftIndex].readBlockIndex = -1;
         oftSize--;
     }
-
-    @Override
-    public int getNumOfOpenFiles() {
-        return oftSize;
-    }
-
-    @Override
-    public int getFDIndex(int oftIndex) throws OFTException {
-        checkOftIndex(oftIndex);
-        OftEntry file = entriesBuffer[oftIndex];
-        return file.fDescIndex;
-    }
 }

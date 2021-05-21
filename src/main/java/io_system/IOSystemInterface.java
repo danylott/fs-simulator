@@ -25,12 +25,9 @@ public abstract class IOSystemInterface {
         }
     }
 
-    public boolean cleanup() throws IOException {
+    public void cleanup() throws IOException {
         if(fileExists(systemStatePath)) {
             saveSystemState();
-            return true;
-        } else {
-            return false;
         }
     }
 

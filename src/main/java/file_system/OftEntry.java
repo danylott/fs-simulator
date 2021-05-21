@@ -3,7 +3,7 @@ package file_system;
 public class OftEntry {
     public byte[] readWriteBuffer;
 
-    public int fPos = 0;
+    public int fPos;
     public int fDescIndex;
     public int readBlockIndex;
 

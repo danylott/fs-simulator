@@ -9,10 +9,6 @@ public class DiskReader extends DiskStream {
         super(ios, blockIndex, shift);
     }
 
-    public void clear() {
-        blockRead = false;
-    }
-
     public byte[] read(int bytes) {
         byte[] res = new byte[bytes];
         int resIndex = 0;

@@ -394,7 +394,7 @@ public class FileSystem {
         int numOFFilesInDir = dirFd.fileLength / FSConfig.DIRECTORY_ENTRY_SIZE;
         int dirEntryIdx;
         for (int i = 0; i < numOFFilesInDir; i++) {
-            DirectoryEntry curDirEntry = null;
+            DirectoryEntry curDirEntry;
             try {
                 curDirEntry = DirectoryEntry.fromByteArray(read(0, FSConfig.DIRECTORY_ENTRY_SIZE));
             } catch (ReadWriteException e) {
