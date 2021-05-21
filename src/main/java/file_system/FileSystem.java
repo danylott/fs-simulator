@@ -216,7 +216,6 @@ public class FileSystem {
                 }
                 // Need to read new block into buffer
                 entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
-                entry.blockRead = true;
                 entry.readBlockIndex = blockIndex;
             }
             System.arraycopy(entry.readWriteBuffer, 0, res, bytesRead, bytesRead);
@@ -262,7 +261,6 @@ public class FileSystem {
                 }
                 // Read new block
                 entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
-                entry.blockRead = true;
                 entry.readBlockIndex = blockIndex;
             }
             // Write data into the buffer

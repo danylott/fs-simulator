@@ -53,7 +53,6 @@ public class Oft extends OftInterface {
         checkOftIndex(oftIndex);
         entriesBuffer[oftIndex].fDescIndex = -1;
         entriesBuffer[oftIndex].blockModified = false;
-        entriesBuffer[oftIndex].blockRead = false;
         entriesBuffer[oftIndex].fPos = 0;
         entriesBuffer[oftIndex].readBlockIndex = -1;
         oftSize--;
