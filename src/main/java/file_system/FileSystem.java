@@ -114,18 +114,19 @@ public class FileSystem {
     }
 
     /*
-     * Ensures that given number of bytes can be written in file.
-     * Allocates new blocks if needed.
+     * Changes file length to newLength, allocating new disk blocks if needed.
      * Does NOT cache/write file descriptor on disk.
      */
-    private void reserveBytesForFile(FileDescriptor fd, int bytes) throws AllocationException {
+    private void extendFile(FileDescriptor fd, int newLength) throws AllocationException {
+        assert newLength >= fd.fileLength;
+
         //check if file can store requested bytes
-        if (fd.fileLength + bytes > ios.blockLen() * FSConfig.BLOCKS_PER_FILE) {
-            throw new AllocationException("Increasing file by " + bytes + "bytes will exceed file size limit");
+        if (newLength > ios.blockLen() * FSConfig.BLOCKS_PER_FILE) {
+            throw new AllocationException("Increasing file length to " + newLength + "bytes will exceed file size limit");
         }
         int blocksNum = (fd.fileLength + ios.blockLen() - 1) / ios.blockLen();
-        int freeBytes = blocksNum * ios.blockLen() - fd.fileLength;
-        int toAllocateNum = (bytes - freeBytes + ios.blockLen() - 1) / ios.blockLen();
+        int newBlocksNum = (newLength + ios.blockLen() - 1) / ios.blockLen();
+        int toAllocateNum = newBlocksNum - blocksNum;
         if (toAllocateNum == 0) {
             //Nothing to allocate
             return;
@@ -153,7 +154,7 @@ public class FileSystem {
      * Changes file length to newLength, freeing disk blocks if possible.
      * Does NOT cache/write file descriptor on disk.
      */
-    private void shrinkFile(FileDescriptor fd, int newLength) {
+    private void truncateFile(FileDescriptor fd, int newLength) {
         assert newLength <= fd.fileLength;
 
         int blocksNum = (fd.fileLength + ios.blockLen() - 1) / ios.blockLen();
@@ -200,67 +201,30 @@ public class FileSystem {
         }
         byte[] res = new byte[bytes];
         int bytesRead = 0;
-
         int blockIndex = entry.fPos / ios.blockLen();
-        int shift = entry.fPos % ios.blockLen();
+        int blockOffset = entry.fPos % ios.blockLen();
 
-        if (entry.readBlockIndex != blockIndex) {
-            if (entry.blockModified) {
-                ios.writeBlock(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
-                entry.blockModified = false;
-            }
-            entry.blockRead = false;
-            entry.readBlockIndex = -1;
-        }
-
-        if (shift != 0 || entry.blockModified) {
-            if (!entry.blockRead) {
-                // if block isn't read yet, read the respective block
+        // Read all other bytes
+        while (bytesRead < bytes) {
+            int bytesToRead = Integer.min(ios.blockLen() - blockOffset, bytes - bytesRead);
+            if (entry.readBlockIndex != blockIndex) {
+                // Need to read new block into buffer
+                // Write current buffer to the disk if needed
+                if (entry.blockModified) {
+                    ios.writeBlock(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
+                    entry.blockModified = false;
+                }
+                // Need to read new block into buffer
                 entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
                 entry.blockRead = true;
                 entry.readBlockIndex = blockIndex;
             }
-            int prefixSize = Integer.min(ios.blockLen() - shift, bytes);
-            System.arraycopy(entry.readWriteBuffer, shift, res, bytesRead, prefixSize);
-            bytesRead += prefixSize;
-            bytes -= prefixSize;
-            entry.fPos += prefixSize;
-            shift = (shift + prefixSize) % ios.blockLen();
-            if (shift != 0) {
-                // bytes < BLOCK_SIZE - shift
-                return res;
-            }
-
-            if (entry.blockModified) {
-                ios.writeBlock(fd.blockArray[blockIndex], entry.readWriteBuffer);
-                entry.blockModified = false;
-            }
-            blockIndex += 1;
-            entry.blockRead = false;
-            entry.readBlockIndex = -1;
-        }
-
-        // Read all other bytes
-        while (bytes >= ios.blockLen()) {
-            entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
+            System.arraycopy(entry.readWriteBuffer, 0, res, bytesRead, bytesRead);
             entry.fPos += ios.blockLen();
-            entry.readBlockIndex = blockIndex;
-            entry.blockRead = true;
-            blockIndex += 1;
-
-            System.arraycopy(entry.readWriteBuffer, 0, res, bytesRead, ios.blockLen());
-            bytesRead += ios.blockLen();
-            bytes -= ios.blockLen();
+            bytesRead += bytesToRead;
+            blockIndex++;
         }
 
-        if (bytes > 0) {
-            // read remaining bytes
-            entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
-            System.arraycopy(entry.readWriteBuffer, 0, res, bytesRead, bytes);
-            entry.fPos += bytes;
-            entry.blockRead = true;
-            entry.readBlockIndex = blockIndex;
-        }
         return res;
     }
 
@@ -268,85 +232,47 @@ public class FileSystem {
         FileDescriptor fd = getDescriptor(oft.getFDIndex(oftIndex));
         OftEntry entry = oft.getFile(oftIndex);
 
-        // before reading/writing blocks, we must ensure
-        // the file can store requested bytes
-        // and allocate the necessary bytes
+        // Before reading/writing blocks, we must ensure the file can store requested bytes
         if (data.length + entry.fPos > ios.blockLen() * FSConfig.BLOCKS_PER_FILE) {
             throw new ReadWriteException("Increasing file by " + data.length + "bytes will exceed file size limit");
         }
-
-        int bytesWritten = 0;
-        int blockIndex = entry.fPos / ios.blockLen();
-        int blockOffset = entry.fPos % ios.blockLen();
-        int tempFileLength = fd.fileLength;
-
-        while (data.length - bytesWritten + blockOffset > ios.blockLen()) {
-            int bytesToAlloc = Integer.max(0, ios.blockLen() - blockOffset - fd.fileLength + entry.fPos);
-            reserveBytesForFile(fd, bytesToAlloc);
-            if (entry.readBlockIndex != blockIndex) {
-                if (entry.blockModified) {
-                    ios.writeBlock(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
-                    entry.blockModified = false;
-                }
-                entry.blockRead = false;
-                entry.readBlockIndex = -1;
-            }
-            if (!entry.blockRead) {
-                entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
-                entry.blockRead = true;
-                entry.readBlockIndex = blockIndex;
-            }
-            System.arraycopy(data, bytesWritten, entry.readWriteBuffer, blockOffset, ios.blockLen() - blockOffset);
-            bytesWritten += ios.blockLen() - blockOffset;
-            entry.fPos += ios.blockLen() - blockOffset;
-            blockOffset = 0;
-
-            ios.writeBlock(fd.blockArray[blockIndex], entry.readWriteBuffer);
-            blockIndex++;
-            entry.blockModified = false;
-            entry.blockRead = false;
-            if (entry.fPos > fd.fileLength) {
-                fd.fileLength = entry.fPos;
-            }
-        }
-
-        int bytes = data.length - bytesWritten;
-        int bytesToAlloc = Integer.max(0, bytes - fd.fileLength + entry.fPos);
-
-        reserveBytesForFile(fd, bytesToAlloc);
-        if (entry.readBlockIndex != blockIndex) {
-            if (entry.blockModified) {
-                ios.writeBlock(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
-                entry.blockModified = false;
-            }
-            entry.blockRead = false;
-            entry.readBlockIndex = -1;
-        }
-        if (!entry.blockRead) {
-            entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
-            entry.blockRead = true;
-            entry.readBlockIndex = blockIndex;
-        }
-        System.arraycopy(data, bytesWritten, entry.readWriteBuffer, blockOffset, bytes);
-        bytesWritten += bytes;
-        if (bytes == ios.blockLen()) {
-            ios.writeBlock(fd.blockArray[blockIndex], entry.readWriteBuffer);
-            entry.blockModified = false;
-            entry.blockRead = true;
-        } else {
-            entry.blockRead = true;
-            entry.blockModified = true;
-        }
-        entry.fPos += bytes;
-
-        if (entry.fPos > tempFileLength) {
-            fd.fileLength = entry.fPos;
+        if (entry.fPos + data.length > fd.fileLength) {
+            // Allocate the necessary bytes
+            extendFile(fd, entry.fPos + data.length);
+            //Write updated descriptor on disk
             int fdShift = ios.blocksNum() + FSConfig.FILE_DESCRIPTOR_SIZE * entry.fDescIndex;
             int fdBlockIndex = fdShift / ios.blockLen();
             int fdOffset = fdShift % ios.blockLen();
             DiskWriter fOut = new DiskWriter(ios, fdBlockIndex, fdOffset);
             fOut.write(FileDescriptor.asByteArray(fd));
         }
+
+        int bytesWritten = 0;
+        int blockIndex = entry.fPos / ios.blockLen();
+        int blockOffset = entry.fPos % ios.blockLen();
+
+        while (bytesWritten < data.length) {
+            int bytesToWrite = Integer.min(ios.blockLen() - blockOffset, data.length - bytesWritten);
+            if (entry.readBlockIndex != blockIndex) {
+                // Need to read new block into buffer
+                // Write current buffer to the disk if needed
+                if (entry.blockModified) {
+                    ios.writeBlock(fd.blockArray[entry.readBlockIndex], entry.readWriteBuffer);
+                    entry.blockModified = false;
+                }
+                // Read new block
+                entry.readWriteBuffer = ios.readBlock(fd.blockArray[blockIndex]);
+                entry.blockRead = true;
+                entry.readBlockIndex = blockIndex;
+            }
+            // Write data into the buffer
+            System.arraycopy(data, bytesWritten, entry.readWriteBuffer, blockOffset,  bytesToWrite);
+            entry.blockModified = true;
+            bytesWritten += bytesToWrite;
+            blockOffset = 0;
+            blockIndex++;
+        }
+        entry.fPos += bytesWritten;
         return bytesWritten;
     }
 
@@ -411,7 +337,7 @@ public class FileSystem {
 
         //Delete file from disk
         //Free disk blocks
-        shrinkFile(getDescriptor(de.fdIndex), 0);
+        truncateFile(getDescriptor(de.fdIndex), 0);
         //Free file descriptor
         int offset = ios.blocksNum() + FSConfig.FILE_DESCRIPTOR_SIZE * de.fdIndex;
         int blockIndex = offset / ios.blockLen();
@@ -437,7 +363,7 @@ public class FileSystem {
         } catch (ReadWriteException | AllocationException e) {
             throw new IllegalStateException("Looks like DirectoryEntry is outside directory file...");
         }
-        shrinkFile(dirDescriptor, dirDescriptor.fileLength - FSConfig.DIRECTORY_ENTRY_SIZE);
+        truncateFile(dirDescriptor, dirDescriptor.fileLength - FSConfig.DIRECTORY_ENTRY_SIZE);
 
         //Write directory descriptor on disk.
         writer = new DiskWriter(ios, ios.blocksNum() / ios.blockLen(), ios.blocksNum() % ios.blockLen());
@@ -494,7 +420,7 @@ public class FileSystem {
         FileDescriptor fd = fdCache.remove(fdIndex);
         OftEntry oftEntry = oft.getFile(oftIndex);
         if (oftEntry.blockModified) {
-            ios.writeBlock(fd.blockArray[oftEntry.fPos/ios.blockLen()], oftEntry.readWriteBuffer);
+            ios.writeBlock(fd.blockArray[oftEntry.readBlockIndex], oftEntry.readWriteBuffer);
         }
         oft.removeOftEntry(oftIndex);
     }
