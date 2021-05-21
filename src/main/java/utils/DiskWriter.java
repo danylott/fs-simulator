@@ -7,14 +7,6 @@ public class DiskWriter extends DiskStream {
         super(ios, blockIndex, shift);
     }
 
-    // Q:::Not needed?
-    public void flush() {
-        if (blockRead) {
-            ios.writeBlock(blockIndex, blockBuffer);
-            blockRead = false;
-        }
-    }
-
     public void write(byte[] data) {
         int dataIndex = 0;
         while (dataIndex < data.length) {
@@ -23,7 +15,8 @@ public class DiskWriter extends DiskStream {
                 blockBuffer = ios.readBlock(blockIndex);
                 blockRead = true;
             }
-            int writeLen = Integer.min(ios.blockLen() - shift, data.length);
+            int writeLen = Integer.min(ios.blockLen() - shift, data.length - dataIndex);
+            System.out.flush();
             System.arraycopy(data, dataIndex, blockBuffer, shift, writeLen);
             shift = (shift + writeLen) % ios.blockLen();
             dataIndex += writeLen;

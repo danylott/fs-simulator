@@ -11,7 +11,7 @@ public class FSConfig {
      * With 3 64-bytes blocks for all 18 directory entries, optimal
      * filename length is 6.7 bytes (chars).
      */
-    public static final int MAX_FILENAME_LEN = 6;
+    public static final int MAX_FILENAME_LEN = 4;
     public static final int BLOCKS_PER_FILE = 3;
     public static final int MAX_OPEN_FILES = 128;
 
