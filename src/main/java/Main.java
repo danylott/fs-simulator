@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Main {
-    private static final String[] commands = {"cr", "de", "op", "cl", "rd", "wr", "sk", "dr", "in", "sv", "exit"};
+    private static final String[] commands = {"cr", "de", "op", "cl", "rd", "wr", "sk", "dr", "in", "sv", "exit", "db"};
 
     private static String blue(String str){ return (char) 27 + "[34m" + str + (char) 27 + "[0m"; }
     private static String red(String str){ return (char) 27 + "[31m" + str + (char) 27 + "[0m"; }
@@ -62,7 +62,7 @@ public class Main {
 
         boolean exit = false;
         boolean initialized = false;
-        boolean debug_mode = false;
+        boolean debugMode = false;
         Scanner in = new Scanner(System.in);
         String str;
 
@@ -79,6 +79,16 @@ public class Main {
                                 exit = true;
                             }
                             // Initialize
+                        } else if(command[0].equals("db")) {
+                            if (checkArguments(command, 1)) {
+                                if(debugMode) {
+                                    debugMode = false;
+                                    System.out.println(blue("debug mode off"));
+                                } else {
+                                    debugMode = true;
+                                    System.out.println(blue("debug mode on"));
+                                }
+                            }
                         } else if (command[0].equals("in")) {
                             if (checkArguments(command, 6)) {
                                 int cylNum = Integer.parseInt(command[1]);
@@ -201,8 +211,8 @@ public class Main {
                 }
             } catch (IOException | OFTException | ReadWriteException | AllocationException | FSException e) {
                 System.out.println(GenericError);
-                if (debug_mode) {
-                    e.printStackTrace();
+                if (debugMode) {
+                    e.printStackTrace(System.out);
                 }
             }
         }

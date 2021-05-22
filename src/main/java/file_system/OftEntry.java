@@ -3,11 +3,10 @@ package file_system;
 public class OftEntry {
     public byte[] readWriteBuffer;
 
-    public int fPos = 0;
+    public int fPos;
     public int fDescIndex;
     public int readBlockIndex;
 
-    public boolean blockRead;
     public boolean blockModified;
 
     public OftEntry() {
@@ -15,7 +14,6 @@ public class OftEntry {
         this.fPos = 0;
         this.fDescIndex = -1;
         this.readBlockIndex = -1;
-        this.blockRead = false;
         this.blockModified = false;
     }
 }

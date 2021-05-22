@@ -3,8 +3,6 @@ package components;
 import file_system.FSConfig;
 
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import java.util.Arrays;
 
 public class FileDescriptor {
     public int fileLength = -1;
@@ -12,14 +10,6 @@ public class FileDescriptor {
 
     public FileDescriptor() {
         blockArray = new int[FSConfig.BLOCKS_PER_FILE];
-    }
-
-    //blockArray[i] == 0 -> i-th block is not reserved.
-    public FileDescriptor(int fileLength, int[] blockArray) {
-        assert blockArray.length == FSConfig.BLOCKS_PER_FILE;
-
-        this.fileLength = fileLength;
-        this.blockArray = blockArray;
     }
 
     public static FileDescriptor fromByteArray(byte[] data) {
